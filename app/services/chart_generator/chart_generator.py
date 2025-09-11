@@ -240,8 +240,12 @@ class ChartGenerator:
                 enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
                 validated_params["metric"] = enhanced_metric
         
-        elif chart_type in ["table", "echarts_timeseries_bar", "echarts_timeseries_line"]:
-            # Chart types ini menggunakan "metrics" plural
+        elif chart_type in ["echarts_timeseries_line", "echarts_timeseries_bar"]:
+            # Timeseries charts membutuhkan struktur yang berbeda
+            validated_params = self._validate_timeseries_params(validated_params, dataset_selected)
+            
+        elif chart_type == "table":
+            # Table charts menggunakan "metrics" plural
             if "metric" in validated_params and "metrics" not in validated_params:
                 # Convert singular ke plural array
                 metric = validated_params["metric"]
@@ -266,6 +270,177 @@ class ChartGenerator:
                 enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
                 validated_params["metrics"] = [enhanced_metric]
                 del validated_params["metric"]
+        
+        return validated_params
+    
+    def _validate_timeseries_params(
+        self,
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate dan sesuaikan params khusus untuk timeseries charts.
+        
+        Args:
+            params: Raw params
+            dataset_selected: Dataset yang digunakan
+            
+        Returns:
+            Validated timeseries params
+        """
+        validated_params = params.copy()
+        columns = dataset_selected.get('columns', [])
+        
+        # 1. Ensure x_axis (time column) is set correctly
+        if "x_axis" not in validated_params:
+            # Find date/time column
+            date_columns = [col for col in columns if 'date' in str(col.get('type', '')).lower() or col.get('is_dttm', False)]
+            if date_columns:
+                validated_params["x_axis"] = date_columns[0].get('column_name')
+            else:
+                # Fallback - cari kolom yang nama mengandung date/time
+                date_named_cols = [col for col in columns if any(word in col.get('column_name', '').lower() for word in ['date', 'time', 'created', 'updated'])]
+                if date_named_cols:
+                    validated_params["x_axis"] = date_named_cols[0].get('column_name')
+                else:
+                    validated_params["x_axis"] = columns[0].get('column_name', 'id') if columns else 'id'
+        
+        # 2. Set default time_grain_sqla
+        if "time_grain_sqla" not in validated_params:
+            validated_params["time_grain_sqla"] = "P1W"  # Default weekly
+        
+        # 3. Handle metrics - convert any format ke proper format
+        if "metrics" in validated_params:
+            metrics = validated_params["metrics"]
+            if isinstance(metrics, list):
+                enhanced_metrics = []
+                for metric in metrics:
+                    enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                    enhanced_metrics.append(enhanced_metric)
+                validated_params["metrics"] = enhanced_metrics
+        elif "metric" in validated_params:
+            # Convert singular to plural
+            metric = validated_params["metric"]
+            enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+            validated_params["metrics"] = [enhanced_metric]
+            del validated_params["metric"]
+        else:
+            # No metrics specified, create default
+            numeric_cols = [col for col in columns if any(t in str(col.get('type', '')).lower() for t in ['int', 'float', 'decimal', 'numeric'])]
+            if numeric_cols:
+                first_numeric = numeric_cols[0]
+                default_metric = self._build_metric_object("SUM", first_numeric, f"SUM({first_numeric.get('column_name')})")
+                validated_params["metrics"] = [default_metric]
+            else:
+                # Fallback to count
+                first_col = columns[0] if columns else {"column_name": "id", "type": "INTEGER"}
+                default_metric = self._build_metric_object("COUNT", first_col, f"COUNT({first_col.get('column_name')})")
+                validated_params["metrics"] = [default_metric]
+        
+        # 4. Handle groupby (dimensions for series)
+        if "groupby" not in validated_params:
+            # Find categorical columns untuk series
+            categorical_cols = [col for col in columns if any(t in str(col.get('type', '')).lower() for t in ['varchar', 'text', 'string', 'char'])]
+            if categorical_cols:
+                # Pilih kolom kategoris yang bukan time column
+                x_axis = validated_params.get("x_axis", "")
+                non_time_categoricals = [col for col in categorical_cols if col.get('column_name') != x_axis]
+                if non_time_categoricals:
+                    validated_params["groupby"] = [non_time_categoricals[0].get('column_name')]
+                else:
+                    validated_params["groupby"] = []
+            else:
+                validated_params["groupby"] = []
+        
+        # 5. Handle contribution mode if specified
+        if "contribution_mode" not in validated_params and "contributionMode" not in validated_params:
+            # Check if AI specified contribution mode in any format
+            for key in validated_params:
+                if "contribution" in str(key).lower():
+                    value = validated_params[key]
+                    if isinstance(value, str) and value.lower() in ["column", "row"]:
+                        validated_params["contributionMode"] = value.lower()
+                        break
+        elif "contribution_mode" in validated_params:
+            # Convert snake_case to camelCase
+            validated_params["contributionMode"] = validated_params["contribution_mode"]
+            del validated_params["contribution_mode"]
+
+        # 5a. Validate contributionMode for line chart - fix invalid 'series' value
+        if "contributionMode" in validated_params:
+            contribution_mode = validated_params["contributionMode"]
+            if contribution_mode not in ["column", "row"]:
+                logger.warning(f"Invalid contributionMode '{contribution_mode}' for timeseries chart, correcting to 'column'")
+                validated_params["contributionMode"] = "column"
+
+        # 6. Remove invalid fields yang tidak dipakai timeseries
+        invalid_fields = ["series", "x_axis_object", "y_axis"]
+        for field in invalid_fields:
+            if field in validated_params:
+                del validated_params[field]
+        
+        # 6. Set default timeseries specific params
+        default_timeseries_params = {
+            "x_axis_sort_asc": True,
+            "x_axis_sort_series": "name",
+            "x_axis_sort_series_ascending": True,
+            "order_desc": True,
+            "row_limit": 1000,
+            "truncate_metric": True,
+            "show_empty_columns": True,
+            "comparison_type": "values",
+            "contributionMode": "column",
+            "annotation_layers": [],
+            "forecastPeriods": 10,
+            "forecastInterval": 0.8,
+            "x_axis_title_margin": 15,
+            "y_axis_title_margin": 30,
+            "y_axis_title_position": "Left",
+            "sort_series_type": "sum",
+            "color_scheme": "bnbColors",
+            "time_shift_color": True,
+            "seriesType": "line",
+            "only_total": True,
+            "opacity": 0.2,
+            "markerSize": 6,
+            "show_legend": True,
+            "legendType": "scroll",
+            "legendOrientation": "top",
+            "x_axis_time_format": "smart_date",
+            "rich_tooltip": True,
+            "showTooltipTotal": True,
+            "tooltipTimeFormat": "smart_date",
+            "y_axis_format": ",.2f",
+            "truncateXAxis": True,
+            "y_axis_bounds": [None, None]
+        }
+        
+        for key, value in default_timeseries_params.items():
+            if key not in validated_params:
+                validated_params[key] = value
+        
+        # 7. Ensure temporal filter is set correctly
+        if "adhoc_filters" not in validated_params or not validated_params["adhoc_filters"]:
+            x_axis = validated_params.get("x_axis", "")
+            if x_axis:
+                temporal_filter = {
+                    "clause": "WHERE",
+                    "subject": x_axis,
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE"
+                }
+                validated_params["adhoc_filters"] = [temporal_filter]
+        else:
+            # Update existing temporal filter with correct x_axis
+            x_axis = validated_params.get("x_axis", "")
+            if x_axis:
+                for filter_item in validated_params["adhoc_filters"]:
+                    if filter_item.get("operator") == "TEMPORAL_RANGE":
+                        filter_item["subject"] = x_axis
+                        break
+        
+        logger.info(f"Timeseries params validated: x_axis={validated_params.get('x_axis')}, metrics_count={len(validated_params.get('metrics', []))}, groupby={validated_params.get('groupby')}")
         
         return validated_params
     
@@ -321,7 +496,15 @@ class ChartGenerator:
         elif isinstance(metric, dict):
             # Jika sudah dict, enhance dengan column metadata jika belum ada
             if "column" in metric and isinstance(metric["column"], dict):
-                # Sudah ada column metadata, check kelengkapan
+                # Sudah ada column metadata, tapi check apakah complete
+                if "expressionType" not in metric or "optionName" not in metric:
+                    # Missing required fields - rebuild metric completely
+                    aggregate = metric.get("aggregate", "COUNT")
+                    label = metric.get("label", f"{aggregate}(*)")
+                    column_info = metric["column"]
+                    return self._build_metric_object(aggregate, column_info, label)
+                
+                # Just enhance column metadata if missing id
                 column = metric["column"]
                 if "id" not in column:
                     # Enhance dengan column metadata dari dataset
@@ -378,6 +561,16 @@ class ChartGenerator:
         Returns:
             Metric object yang lengkap
         """
+        # Generate proper optionName similar to Superset format
+        import hashlib
+        import time
+        
+        # Create unique optionName based on label and timestamp
+        hash_input = f"{label}_{int(time.time())}"
+        hash_object = hashlib.md5(hash_input.encode())
+        hash_hex = hash_object.hexdigest()
+        option_name = f"metric_{hash_hex[:10]}_{hash_hex[10:23]}"
+        
         return {
             "expressionType": "SIMPLE",
             "column": self._build_column_metadata(column_info),
@@ -386,7 +579,7 @@ class ChartGenerator:
             "datasourceWarning": False,
             "hasCustomLabel": False,
             "label": label,
-            "optionName": f"metric_{hash(label) % 100000}"
+            "optionName": option_name
         }
     
     def _build_column_metadata(self, column_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -460,6 +653,11 @@ class ChartGenerator:
                     query["metrics"] = params["metrics"]
                 else:
                     query["metrics"] = ["count(*)"]
+                    
+            elif viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar"]:
+                # Timeseries charts membutuhkan struktur query yang khusus
+                self._build_timeseries_query_context(query, params, dataset_selected)
+                
             else:
                 # Chart types lain menggunakan "metrics" (plural)
                 if "metrics" in params:
@@ -491,6 +689,142 @@ class ChartGenerator:
             query_context["queries"][0]["metrics"] = ["count(*)"]
         
         return query_context
+    
+    def _build_timeseries_query_context(
+        self,
+        query: Dict[str, Any],
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> None:
+        """
+        Build query context khusus untuk timeseries charts.
+        
+        Args:
+            query: Query object untuk dimodifikasi
+            params: Params dari chart config
+            dataset_selected: Dataset yang digunakan
+        """
+        # 1. Set metrics dari params
+        if "metrics" in params:
+            query["metrics"] = params["metrics"]
+        
+        # 2. Build columns dengan time axis dan groupby
+        columns = []
+        
+        # Add time axis dengan proper structure sesuai database format
+        if "x_axis" in params:
+            x_axis = params["x_axis"]
+            time_grain = params.get("time_grain_sqla", "P1W")
+            
+            # Cari column metadata untuk x_axis
+            x_axis_column_info = None
+            dataset_columns = dataset_selected.get('columns', [])
+            for col in dataset_columns:
+                if col.get('column_name') == x_axis:
+                    x_axis_column_info = col
+                    break
+            
+            if x_axis_column_info:
+                time_column = {
+                    "timeGrain": time_grain,
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": x_axis,
+                    "label": x_axis,
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "column_name": x_axis_column_info.get('column_name'),
+                        "type": x_axis_column_info.get('type'),
+                        "is_dttm": x_axis_column_info.get('is_dttm', True),
+                        "python_date_format": x_axis_column_info.get('python_date_format', 'mixed'),
+                        "description": x_axis_column_info.get('description', ''),
+                        "filterable": x_axis_column_info.get('filterable', True),
+                        "groupby": x_axis_column_info.get('groupby', True),
+                        "verbose_name": x_axis_column_info.get('verbose_name', x_axis)
+                    }
+                }
+                columns.append(time_column)
+            else:
+                # Fallback jika column info tidak ditemukan
+                time_column = {
+                    "timeGrain": time_grain,
+                    "columnType": "BASE_AXIS", 
+                    "sqlExpression": x_axis,
+                    "label": x_axis,
+                    "expressionType": "SIMPLE"
+                }
+                columns.append(time_column)
+        
+        # Add groupby columns (series dimensions)
+        if "groupby" in params:
+            for groupby_col in params["groupby"]:
+                columns.append(groupby_col)
+        
+        query["columns"] = columns
+        
+        # 3. Set series_columns untuk groupby
+        if "groupby" in params and params["groupby"]:
+            query["series_columns"] = params["groupby"]
+        
+        # 4. Set time_grain di extras
+        if "time_grain_sqla" in params:
+            query["extras"]["time_grain_sqla"] = params["time_grain_sqla"]
+        
+        # 5. Add temporal filter untuk x_axis
+        if "x_axis" in params:
+            temporal_filter = {
+                "col": params["x_axis"],
+                "op": "TEMPORAL_RANGE", 
+                "val": "No filter"
+            }
+            query["filters"].append(temporal_filter)
+        
+        # 6. Set post_processing untuk pivot operations
+        x_axis = params.get("x_axis", "")
+        groupby = params.get("groupby", [])
+        metrics = params.get("metrics", [])
+        
+        if groupby and metrics:
+            # Build post processing for pivot
+            metric_labels = {}
+            for metric in metrics:
+                if isinstance(metric, dict) and "label" in metric:
+                    metric_labels[metric["label"]] = {"operator": "mean"}
+                elif isinstance(metric, str):
+                    metric_labels[metric] = {"operator": "mean"}
+            
+            post_processing = [
+                {
+                    "operation": "pivot",
+                    "options": {
+                        "index": [x_axis],
+                        "columns": groupby,
+                        "aggregates": metric_labels,
+                        "drop_missing_columns": False
+                    }
+                },
+                {
+                    "operation": "rename", 
+                    "options": {
+                        "columns": {list(metric_labels.keys())[0]: None if len(metric_labels) == 1 else list(metric_labels.keys())[0]},
+                        "level": 0,
+                        "inplace": True
+                    }
+                },
+                {
+                    "operation": "contribution",
+                    "options": {
+                        "orientation": params.get("contributionMode", "column"),
+                        "time_shifts": []
+                    }
+                },
+                {
+                    "operation": "flatten"
+                }
+            ]
+            
+            query["post_processing"] = post_processing
+        
+        logger.info(f"Built timeseries query context: x_axis={params.get('x_axis')}, groupby={params.get('groupby')}, time_grain={params.get('time_grain_sqla')}")
     
     async def _associate_chart_to_dashboard(
         self, 

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     MODEL_AI_URL: str = ""
 
-    MODEL_AI_KEY: str = "AIzaSyCCMVkLoOZdqIl2gy98yBe_2adqSwtiJzQ"
+    MODEL_AI_KEY: str = "AIzaSyCLiqDk6IDwrK6X4ORLAqvNWHhGDsHljEU"
     MODEL_AI: str = "gemini-1.5-flash"
     DEFAULT_LLM_PROVIDER: str = "gemini"
 

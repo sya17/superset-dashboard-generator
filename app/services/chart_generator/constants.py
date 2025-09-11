@@ -93,19 +93,44 @@ CHART_CONFIGS = {
         "viz_type": "echarts_timeseries_line",
         "required_params": ["x_axis", "metrics"],
         "default_params": {
-            "adhoc_filters": [],
             "datasource": "",
-            "granularity_sqla": "",
             "x_axis": "",
-            "metrics": [],
-            "row_limit": 10000,
-            "sort_by": "",
+            "time_grain_sqla": "P1W",
             "x_axis_sort_asc": True,
-            "y_axis_format": "",
+            "x_axis_sort_series": "name",
+            "x_axis_sort_series_ascending": True,
+            "metrics": [],
+            "groupby": [],
+            "contributionMode": "column",
+            "adhoc_filters": [{"clause": "WHERE", "subject": "", "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
+            "order_desc": True,
+            "row_limit": 1000,
+            "truncate_metric": True,
+            "show_empty_columns": True,
+            "comparison_type": "values",
+            "annotation_layers": [],
+            "forecastPeriods": 10,
+            "forecastInterval": 0.8,
+            "x_axis_title_margin": 15,
+            "y_axis_title_margin": 30,
+            "y_axis_title_position": "Left",
+            "sort_series_type": "sum",
+            "color_scheme": "bnbColors",
+            "time_shift_color": True,
+            "seriesType": "line",
+            "only_total": True,
+            "opacity": 0.2,
+            "markerSize": 6,
             "show_legend": True,
+            "legendType": "scroll",
+            "legendOrientation": "top",
+            "x_axis_time_format": "smart_date",
             "rich_tooltip": True,
-            "show_controls": True,
-            "line_interpolation": "linear"
+            "showTooltipTotal": True,
+            "tooltipTimeFormat": "smart_date",
+            "y_axis_format": ",.2f",
+            "truncateXAxis": True,
+            "y_axis_bounds": [None, None]
         },
         "description": "Line chart berbasis waktu menggunakan ECharts"
     },
@@ -232,23 +257,43 @@ ADAPTIVE INTELLIGENCE:
    - datasource_id: gunakan dari dataset info
    - params: sesuai chart type yang dipilih
    - metrics: gunakan format SIMPLE dengan column metadata lengkap sesuai Superset standard
+   - untuk timeseries: set contributionMode ('column' atau 'row' SAJA, JANGAN 'series'), x_axis, time_grain_sqla, groupby
 
 🎯 OUTPUT: Generate valid Superset chart JSON configuration.
 
+⚠️ CRITICAL REQUIREMENTS:
+- ONLY essential parameters
+- NO markdown wrapper (```json)
+- VALID JSON format only
+- NO truncated response
 
-RESPOND WITH JSON ONLY - NO EXPLANATIONS."""
+RESPOND WITH MINIMAL VALID JSON ONLY."""
 }
 
-# EXAMPLE DYNAMIC RESPONSES:
+# 
+# EXAMPLE MINIMAL RESPONSE:
+# {
+#   "viz_type": "echarts_timeseries_line",
+#   "slice_name": "Chart Name",
+#   "datasource_id": 33,
+#   "datasource_type": "table", 
+#   "params": {
+#     "x_axis": "date_column",
+#     "time_grain_sqla": "P1W",
+#     "metrics": [{"label": "SUM(amount)", "expressionType": "SIMPLE", "column": {"column_name": "amount", "type": "DECIMAL"}, "aggregate": "SUM"}],
+#     "groupby": ["category"],
+#     "contributionMode": "column",
+#     "row_limit": 1000
+#   }
+# }
 
+# EXAMPLE DYNAMIC RESPONSES:
 # Prompt: "Buat pie chart distribusi produk"
 # → Analisis: distribusi kategorikal
 # → Chart: pie dengan groupby=kategori_produk, metrics=count(*)
-
 # Prompt: "Tampilkan trend penjualan bulanan"  
 # → Analisis: trend temporal
 # → Chart: timeseries_line dengan x_axis=bulan, metrics=sum(penjualan)
-
 # Prompt: "Top 10 customer dengan revenue tertinggi"
 # → Analisis: ranking + perbandingan
 # → Chart: bar dengan groupby=customer, metrics=sum(revenue), limit=10
