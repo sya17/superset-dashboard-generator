@@ -41,7 +41,8 @@ CHART_CONFIGS = {
             "groupby": [],
             "innerRadius": 30,
             "metric": "count(*)",
-            "outerRadius": 300,
+            "outerRadius": 70,
+            "donut": False,
             "row_limit": 50,
             "show_labels": True,
             "show_legend": True,
@@ -206,7 +207,7 @@ ANALYTICAL APPROACH:
 
 🔍 LANGKAH 3 - CHART TYPE SELECTION:
 Pilih berdasarkan kombinasi intent + data structure:
-- Distribusi kategorikal → pie, bar
+- Distribusi kategorikal → pie (jika user minta "donut" set donut:true), bar
 - Trend temporal → timeseries_line, timeseries_bar  
 - Perbandingan → bar, table
 - KPI/Metrics → big_number
@@ -300,7 +301,7 @@ RESPOND WITH MINIMAL VALID JSON ONLY."""
 
 # Mapping keyword ke chart type untuk deteksi otomatis
 CHART_TYPE_KEYWORDS = {
-    "pie": ["pie", "lingkaran", "proporsi", "persentase", "bagian"],
+    "pie": ["pie", "lingkaran", "proporsi", "persentase", "bagian", "donut"],
     "table": ["table", "tabel", "list", "daftar", "data mentah"],
     "echarts_timeseries_bar": ["bar", "batang", "kolom", "histogram", "waktu"],
     "echarts_timeseries_line": ["line", "garis", "trend", "tren", "perkembangan"],
