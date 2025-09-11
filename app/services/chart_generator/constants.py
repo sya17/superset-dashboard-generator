@@ -136,6 +136,52 @@ CHART_CONFIGS = {
         "description": "Line chart berbasis waktu menggunakan ECharts"
     },
     
+    "echarts_area": {
+        "viz_type": "echarts_area",
+        "required_params": ["x_axis", "metrics"],
+        "default_params": {
+            "datasource": "",
+            "x_axis": "",
+            "time_grain_sqla": "P1D",
+            "x_axis_sort_asc": True,
+            "x_axis_sort_series": "name",
+            "x_axis_sort_series_ascending": True,
+            "metrics": [],
+            "groupby": [],
+            "contributionMode": "column",
+            "adhoc_filters": [{"clause": "WHERE", "subject": "", "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
+            "order_desc": True,
+            "row_limit": 1000,
+            "truncate_metric": True,
+            "show_empty_columns": True,
+            "comparison_type": "values",
+            "annotation_layers": [],
+            "forecastPeriods": 10,
+            "forecastInterval": 0.8,
+            "x_axis_title_margin": 15,
+            "y_axis_title_margin": 30,
+            "y_axis_title_position": "Left",
+            "sort_series_type": "sum",
+            "color_scheme": "supersetColors",
+            "time_shift_color": True,
+            "seriesType": "line",
+            "only_total": True,
+            "opacity": 0.2,
+            "markerSize": 6,
+            "show_legend": True,
+            "legendType": "scroll",
+            "legendOrientation": "top",
+            "x_axis_time_format": "smart_date",
+            "rich_tooltip": True,
+            "showTooltipTotal": True,
+            "tooltipTimeFormat": "smart_date",
+            "y_axis_format": "SMART_NUMBER",
+            "truncateXAxis": True,
+            "y_axis_bounds": [None, None]
+        },
+        "description": "Area chart berbasis waktu menggunakan ECharts"
+    },
+    
     "big_number": {
         "viz_type": "big_number",
         "required_params": ["metrics"],
@@ -216,7 +262,7 @@ ANALYTICAL APPROACH:
 🔍 LANGKAH 3 - CHART TYPE SELECTION:
 Pilih berdasarkan kombinasi intent + data structure:
 - Distribusi kategorikal → pie (jika user minta "donut" set donut:true), bar
-- Trend temporal → timeseries_line, timeseries_bar  
+- Trend temporal → timeseries_line, timeseries_bar, echarts_area
 - Perbandingan → bar, table
 - KPI/Metrics → big_number
 - Relasi/Flow → funnel, sankey
@@ -313,6 +359,7 @@ CHART_TYPE_KEYWORDS = {
     "table": ["table", "tabel", "list", "daftar", "data mentah"],
     "echarts_timeseries_bar": ["bar", "batang", "kolom", "histogram", "waktu"],
     "echarts_timeseries_line": ["line", "garis", "trend", "tren", "perkembangan"],
+    "echarts_area": ["area", "area chart", "filled", "pertumbuhan"],
     "big_number": ["big number", "angka besar", "kpi", "total", "jumlah"],
     "funnel": ["funnel", "corong", "konversi", "alur"],
     "echarts_gauge": ["gauge", "speedometer", "meter", "indikator"],

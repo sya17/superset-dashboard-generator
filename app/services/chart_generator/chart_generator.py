@@ -240,8 +240,8 @@ class ChartGenerator:
                 enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
                 validated_params["metric"] = enhanced_metric
         
-        elif chart_type in ["echarts_timeseries_line", "echarts_timeseries_bar"]:
-            # Timeseries charts membutuhkan struktur yang berbeda
+        elif chart_type in ["echarts_timeseries_line", "echarts_timeseries_bar", "echarts_area"]:
+            # Timeseries and area charts membutuhkan struktur yang berbeda
             validated_params = self._validate_timeseries_params(validated_params, dataset_selected)
             
         elif chart_type == "table":
@@ -655,8 +655,8 @@ class ChartGenerator:
                 else:
                     query["metrics"] = ["count(*)"]
                     
-            elif viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar"]:
-                # Timeseries charts membutuhkan struktur query yang khusus
+            elif viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar", "echarts_area"]:
+                # Timeseries and area charts membutuhkan struktur query yang khusus
                 self._build_timeseries_query_context(query, params, dataset_selected)
                 
             else:
