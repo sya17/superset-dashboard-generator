@@ -222,8 +222,8 @@ class ChartGenerator:
         """
         validated_params = params.copy()
         
-        if chart_type == "pie":
-            # PIE chart menggunakan "metric" singular di params
+        if chart_type in ["pie", "funnel"]:
+            # PIE and FUNNEL charts menggunakan "metric" singular di params
             if "metrics" in validated_params and "metric" not in validated_params:
                 # Convert metrics array ke metric singular
                 metrics = validated_params["metrics"]
@@ -232,7 +232,7 @@ class ChartGenerator:
                     metric = metrics[0]
                     enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
                     validated_params["metric"] = enhanced_metric
-                    logger.info(f"PIE chart: converted metrics array to singular metric")
+                    logger.info(f"{chart_type.upper()} chart: converted metrics array to singular metric")
                 del validated_params["metrics"]
             elif "metric" in validated_params:
                 # Enhance existing metric dengan column metadata
@@ -270,6 +270,7 @@ class ChartGenerator:
                 enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
                 validated_params["metrics"] = [enhanced_metric]
                 del validated_params["metric"]
+                logger.info(f"{chart_type}: converted singular metric to metrics array")
         
         return validated_params
     
@@ -641,8 +642,8 @@ class ChartGenerator:
             viz_type = chart_config.get("viz_type", "table")
             
             # Handle metrics - berbeda untuk setiap chart type
-            if viz_type == "pie":
-                # PIE chart: params menggunakan "metric" (singular), query_context menggunakan "metrics" (array)
+            if viz_type in ["pie", "funnel"]:
+                # PIE and FUNNEL charts: params menggunakan "metric" (singular), query_context menggunakan "metrics" (array)
                 if "metric" in params:
                     metric = params["metric"]
                     if isinstance(metric, dict):

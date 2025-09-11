@@ -10,14 +10,14 @@ CHART_TYPES = [
     "echarts_timeseries_bar",
     "big_number", 
     "big_number_total",
-    "echarts_funnel",
+    "funnel",
     "echarts_gauge", 
     "pie",
     "pivot_table_v2",
     "table",
     "echarts_treemap",
     "mixed_timeseries",
-    "echarts_timeseries_area",
+    "echarts_area",
     "echarts_timeseries_line", 
     "echarts_timeseries_scatter",
     "echarts_timeseries_smooth",
@@ -166,18 +166,26 @@ CHART_CONFIGS = {
         "description": "Menampilkan total agregat sebagai angka besar"
     },
     
-    "echarts_funnel": {
-        "viz_type": "echarts_funnel",
-        "required_params": ["groupby", "metrics"],
+    "funnel": {
+        "viz_type": "funnel",
+        "required_params": ["groupby", "metric"],
         "default_params": {
-            "adhoc_filters": [],
+            "adhoc_filters": [{"clause": "WHERE", "subject": "active_date", "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
+            "color_scheme": "supersetColors",
             "datasource": "",
-            "granularity_sqla": "",
             "groupby": [],
-            "metrics": ["count(*)"],
-            "row_limit": 50,
+            "metric": "count(*)",
+            "row_limit": 10,
             "sort_by_metric": True,
-            "label_type": "key_value"
+            "percent_calculation_type": "first_step",
+            "show_legend": True,
+            "legendOrientation": "top",
+            "tooltip_label_type": 5,
+            "number_format": "SMART_NUMBER",
+            "show_labels": True,
+            "show_tooltip_labels": True,
+            "extra_form_data": {},
+            "dashboards": []
         },
         "description": "Funnel chart untuk menampilkan alur konversi"
     }
@@ -306,7 +314,7 @@ CHART_TYPE_KEYWORDS = {
     "echarts_timeseries_bar": ["bar", "batang", "kolom", "histogram", "waktu"],
     "echarts_timeseries_line": ["line", "garis", "trend", "tren", "perkembangan"],
     "big_number": ["big number", "angka besar", "kpi", "total", "jumlah"],
-    "echarts_funnel": ["funnel", "corong", "konversi", "alur"],
+    "funnel": ["funnel", "corong", "konversi", "alur"],
     "echarts_gauge": ["gauge", "speedometer", "meter", "indikator"],
     "pivot_table_v2": ["pivot", "cross tab", "tabulasi silang"],
     "echarts_treemap": ["treemap", "hierarchy", "hierarki"],
