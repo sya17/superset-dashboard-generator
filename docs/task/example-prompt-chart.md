@@ -187,3 +187,116 @@ Buatkan sebuah Chart dengan description seperti berikut:
 - dengan columns: order_no, order_date, customer_name, product_name, loan_amount, down_payment, installment_amount, installment_count, interest_margin, order_status, currency
 - dengan row limit: 1000
 - nama chart: Daftar Order Pinjaman
+
+===================================================================================
+COLLATERAL
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Pie
+- dengan dataset: collateral
+- dengan dimension column: nama_tipe_jaminan
+- dengan metrics: COUNT dari column id_jaminan
+- dengan row limit: 1000
+- nama chart: Distribusi Jaminan per Tipe
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Donut
+- dengan dataset: collateral
+- dengan dimension column: nama_kota
+- dengan metrics: COUNT dari column id_jaminan
+- dengan row limit: 1000
+- nama chart: Distribusi Jaminan per Kota
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: echarts_timeseries_line
+- dengan dataset: collateral
+- dengan time axis column: tanggal_dibuat
+- dengan time grain: month
+- dengan metrics: COUNT dari column id_jaminan
+- dengan dimension groupby: nama_tipe_jaminan
+- dengan row limit: 1000
+- nama chart: Trend Penambahan Jaminan per Tipe
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Bar
+- dengan dataset: collateral
+- dengan dimension column: nama_nasabah
+- dengan metrics: COUNT dari column id_jaminan
+- dengan row limit: 20
+- nama chart: Top 20 Nasabah dengan Jumlah Jaminan Terbanyak
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: echarts_timeseries_area
+- dengan dataset: collateral
+- dengan time axis column: tanggal_dibuat
+- dengan time grain: month
+- dengan metrics: COUNT dari column id_jaminan
+- dengan dimension groupby: nama_kota
+- dengan row limit: 1000
+- nama chart: Area Pertumbuhan Jaminan per Kota
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Funnel
+- dengan dataset: collateral
+- dengan dimension column: status_asuransi
+- dengan metrics: COUNT dari column id_jaminan
+- dengan row limit: 1000
+- nama chart: Funnel Status Asuransi Jaminan
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Big Number Total
+- dengan dataset: collateral
+- dengan metrics: COUNT dari column id_jaminan
+- nama chart: Total Jaminan
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Big Number with Trendline
+- dengan dataset: collateral
+- dengan time axis column: tanggal_dibuat
+- dengan metrics: COUNT dari column id_jaminan
+- nama chart: Pertumbuhan Jaminan
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: collateral
+- query mode: aggregate
+- dengan groupby: nama_tipe_jaminan, nama_kota
+- dengan metrics: COUNT dari column id_jaminan
+- dengan row limit: 1000
+- nama chart: Ringkasan Jaminan per Tipe dan Kota
+
+---
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: collateral
+- query mode: raw
+- dengan columns: id_jaminan, nomor_jaminan, nama_tipe_jaminan, nama_nasabah, nama_pemilik, alamat_jaminan, nama_kota, nomor_dokumen, penerbit_dokumen, tanggal_terima_dokumen, status_asuransi, tanggal_dibuat, tanggal_diubah, dibuat_oleh, diubah_oleh
+- dengan row limit: 1000
+- nama chart: Daftar Detail Jaminan

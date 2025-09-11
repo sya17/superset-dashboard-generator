@@ -15,11 +15,16 @@ Usage:
 from .chart_generator import ChartGenerator, ChartGeneratorError
 from .instruction_builder import InstructionBuilder
 from .constants import CHART_TYPES, CHART_CONFIGS
+from .validators import ChartValidator
+from .builders import QueryContextBuilder, MetricBuilder
 
 __all__ = [
     'ChartGenerator', 
     'ChartGeneratorError',
     'InstructionBuilder',
+    'ChartValidator',
+    'QueryContextBuilder',
+    'MetricBuilder',
     'CHART_TYPES', 
     'CHART_CONFIGS'
 ]
