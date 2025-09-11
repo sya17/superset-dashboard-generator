@@ -1,14 +1,4 @@
-Buatkan sebuah Chart dengan description seperti berikut:
-
-- tipe chart: echarts_timeseries_line
-- dengan dataset: saving account
-- dengan time axis column: active_date
-- dengan time grain: month
-- dengan metrics: SUM dari column saldo
-- dengan dimension groupby: product_name
-- dengan row limit: 1000
-- nama chart: Trend Pertumbuhan Saldo per Produk
-
+DATASET SAVING
 Buatkan sebuah Chart dengan description seperti berikut:
 
 - tipe chart: Pie Chart
@@ -17,6 +7,27 @@ Buatkan sebuah Chart dengan description seperti berikut:
 - dengan metrics: SUM dari column saldo
 - dengan row limit: 1000
 - nama chart: Komposisi Saldo Berdasarkan Jenis Tabungan
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Pie Chart
+- dengan dataset: saving account
+- dengan dimension column: product_name
+- dengan metrics: SUM dari column saldo
+- dengan row limit: 1000
+- format: donut
+- nama chart: Komposisi Saldo per Produk
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: line
+- dengan dataset: saving account
+- dengan time axis column: active_date
+- dengan time grain: month
+- dengan metrics: SUM dari column saldo
+- dengan dimension groupby: product_name
+- dengan row limit: 1000
+- nama chart: Trend Pertumbuhan Saldo per Produk
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
@@ -29,14 +40,61 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
-- tipe chart: echarts_timeseries_bar
-- dengan dataset: loan order
-- dengan time axis column: order_date
+- tipe chart: area
+- dengan dataset: saving account
+- dengan time axis column: active_date
 - dengan time grain: month
-- dengan metrics: SUM dari column loan_amount
+- dengan metrics: SUM dari column saldo
+- dengan dimension groupby: product_name
 - dengan row limit: 1000
-- nama chart: Total Pinjaman per Bulan
+- nama chart: Area Pertumbuhan Saldo per Produk
 
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Funnel Chart
+- dengan dataset: saving account
+- dengan dimension column: product_name
+- dengan metrics: SUM dari column saldo
+- dengan row limit: 1000
+- nama chart: Funnel Distribusi Saldo per Produk
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: big number total
+- dengan dataset: saving account
+- dengan metrics: SUM dari column saldo
+- nama chart: Total Seluruh Saldo Tabungan
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: big number
+- dengan dataset: saving account
+- dengan time axis column: active_date
+- dengan time grain: month
+- dengan metrics: SUM dari column saldo
+- nama chart: Trend Total Saldo Tabungan
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: saving account
+- query mode: aggregate
+- dengan dimension column: product_name
+- dengan metrics: SUM dari column saldo
+- dengan row limit: 1000
+- nama chart: Total Saldo per Produk
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: saving account
+- query mode: raw
+- dengan columns: account_no, account_name, debitur_name, product_name, saldo, type_product, active_date
+- dengan row limit: 1000
+- nama chart: Daftar Rekening Tabungan
+
+===================================================================================
+LOAN
 Buatkan sebuah Chart dengan description seperti berikut:
 
 - tipe chart: Pie Chart
@@ -48,12 +106,84 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
+- tipe chart: Pie Chart
+- dengan dataset: loan order
+- dengan dimension column: product_name
+- dengan metrics: SUM dari column loan_amount
+- dengan row limit: 1000
+- format: donut
+- nama chart: Komposisi Pinjaman per Produk
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
 - tipe chart: echarts_timeseries_line
 - dengan dataset: loan order
 - dengan time axis column: order_date
-- dengan time grain: quarter
-- dengan metrics:
-  - AVG dari column down_payment
-  - AVG dari column loan_amount
+- dengan time grain: month
+- dengan metrics: SUM dari column loan_amount
 - dengan row limit: 1000
-- nama chart: Perbandingan Rata-rata DP dan Pinjaman
+- nama chart: Trend Total Pinjaman Bulanan
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Bar Chart
+- dengan dataset: loan order
+- dengan dimension column: customer_name
+- dengan metrics: SUM dari column loan_amount
+- dengan row limit: 20
+- nama chart: Top 20 Customer Pinjaman
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: echarts_timeseries_area
+- dengan dataset: loan order
+- dengan time axis column: order_date
+- dengan time grain: month
+- dengan metrics: SUM dari column loan_amount
+- dengan dimension groupby: product_name
+- dengan row limit: 1000
+- nama chart: Area Pertumbuhan Pinjaman per Produk
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Funnel Chart
+- dengan dataset: loan order
+- dengan dimension column: order_status
+- dengan metrics: COUNT dari column order_no
+- dengan row limit: 1000
+- nama chart: Funnel Distribusi Status Order
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: big number total
+- dengan dataset: loan order
+- dengan metrics: SUM dari column loan_amount
+- nama chart: Total Seluruh Pinjaman
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: big number
+- dengan dataset: loan order
+- dengan time axis column: order_date
+- dengan time grain: month
+- dengan metrics: SUM dari column loan_amount
+- nama chart: Trend Total Pinjaman Bulanan
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: loan order
+- query mode: aggregate
+- dengan dimension column: order_status
+- dengan metrics: SUM dari column loan_amount
+- dengan row limit: 1000
+- nama chart: Total Pinjaman per Status Order
+
+Buatkan sebuah Chart dengan description seperti berikut:
+
+- tipe chart: Table
+- dengan dataset: loan order
+- query mode: raw
+- dengan columns: order_no, order_date, customer_name, product_name, loan_amount, down_payment, installment_amount, installment_count, interest_margin, order_status, currency
+- dengan row limit: 1000
+- nama chart: Daftar Order Pinjaman
