@@ -12,13 +12,13 @@ class Settings(BaseSettings):
 
     MODEL_AI_URL: str = ""
 
-    MODEL_AI_KEY: str = "AIzaSyCLiqDk6IDwrK6X4ORLAqvNWHhGDsHljEU"
-    MODEL_AI: str = "gemini-1.5-flash"
-    DEFAULT_LLM_PROVIDER: str = "gemini"
+    # MODEL_AI_KEY: str = "AIzaSyCCMVkLoOZdqIl2gy98yBe_2adqSwtiJzQ"
+    # MODEL_AI: str = "gemini-1.5-flash"
+    # DEFAULT_LLM_PROVIDER: str = "gemini"
 
-    # MODEL_AI_KEY: str = "csk-4vkwt45ex8p4pwcv9e8e9vm3hw556mj562eh8dxv8peech6t"
-    # MODEL_AI: str = "qwen-3-coder-480b"
-    # DEFAULT_LLM_PROVIDER: str ="cerebras"
+    MODEL_AI_KEY: str = "csk-hhk636vkmewcxd6t9e8p88v5mw3rnn2jmm2j54pwnkyhe3xf"
+    MODEL_AI: str = "qwen-3-coder-480b"
+    DEFAULT_LLM_PROVIDER: str ="cerebras"
     
     # Default LLM Provider to use
     # DEFAULT_LLM_PROVIDER: str ="local_qwen"

@@ -243,6 +243,11 @@ class ChartGenerator:
         elif chart_type in ["echarts_timeseries_line", "echarts_timeseries_bar", "echarts_area"]:
             # Timeseries and area charts membutuhkan struktur yang berbeda
             validated_params = self._validate_timeseries_params(validated_params, dataset_selected)
+        
+        # Handle temporal parameters for big_number if x_axis is specified
+        if chart_type == "big_number" and ("x_axis" in validated_params or "time_grain_sqla" in validated_params):
+            # Validate x_axis and time_grain_sqla for big_number temporal functionality
+            validated_params = self._validate_big_number_temporal_params(validated_params, dataset_selected)
             
         elif chart_type == "table":
             # Table charts menggunakan "metrics" plural
@@ -263,14 +268,41 @@ class ChartGenerator:
                         enhanced_metrics.append(enhanced_metric)
                     validated_params["metrics"] = enhanced_metrics
         
-        elif chart_type in ["big_number", "big_number_total"]:
-            # Big number charts menggunakan "metrics" plural
-            if "metric" in validated_params and "metrics" not in validated_params:
+        elif chart_type == "big_number":
+            # Big number charts menggunakan "metric" singular (seperti pie/funnel/big_number_total)
+            if "metrics" in validated_params and "metric" not in validated_params:
+                # Convert metrics array ke metric singular
+                metrics = validated_params["metrics"]
+                if isinstance(metrics, list) and len(metrics) > 0:
+                    # Ambil metric pertama dan enhance dengan column metadata
+                    metric = metrics[0]
+                    enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                    validated_params["metric"] = enhanced_metric
+                    logger.info(f"{chart_type}: converted metrics array to singular metric")
+                del validated_params["metrics"]
+            elif "metric" in validated_params:
+                # Enhance existing metric dengan column metadata
                 metric = validated_params["metric"]
                 enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
-                validated_params["metrics"] = [enhanced_metric]
-                del validated_params["metric"]
-                logger.info(f"{chart_type}: converted singular metric to metrics array")
+                validated_params["metric"] = enhanced_metric
+        
+        elif chart_type == "big_number_total":
+            # Big number total charts menggunakan "metric" singular (seperti pie/funnel)
+            if "metrics" in validated_params and "metric" not in validated_params:
+                # Convert metrics array ke metric singular
+                metrics = validated_params["metrics"]
+                if isinstance(metrics, list) and len(metrics) > 0:
+                    # Ambil metric pertama dan enhance dengan column metadata
+                    metric = metrics[0]
+                    enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                    validated_params["metric"] = enhanced_metric
+                    logger.info(f"{chart_type}: converted metrics array to singular metric")
+                del validated_params["metrics"]
+            elif "metric" in validated_params:
+                # Enhance existing metric dengan column metadata
+                metric = validated_params["metric"]
+                enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                validated_params["metric"] = enhanced_metric
         
         return validated_params
     
@@ -442,6 +474,66 @@ class ChartGenerator:
                         break
         
         logger.info(f"Timeseries params validated: x_axis={validated_params.get('x_axis')}, metrics_count={len(validated_params.get('metrics', []))}, groupby={validated_params.get('groupby')}")
+        
+        return validated_params
+    
+    def _validate_big_number_temporal_params(
+        self,
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate dan sesuaikan params khusus untuk big_number charts dengan temporal functionality.
+        
+        Args:
+            params: Raw params
+            dataset_selected: Dataset yang digunakan
+            
+        Returns:
+            Validated big_number temporal params
+        """
+        validated_params = params.copy()
+        columns = dataset_selected.get('columns', [])
+        
+        # 1. Ensure x_axis (time column) is set correctly
+        if "x_axis" not in validated_params or not validated_params["x_axis"]:
+            # Find date/time column
+            date_columns = [col for col in columns if 'date' in str(col.get('type', '')).lower() or col.get('is_dttm', False)]
+            if date_columns:
+                validated_params["x_axis"] = date_columns[0].get('column_name')
+            else:
+                # Fallback - cari kolom yang nama mengandung date/time
+                date_named_cols = [col for col in columns if any(word in col.get('column_name', '').lower() for word in ['date', 'time', 'created', 'updated'])]
+                if date_named_cols:
+                    validated_params["x_axis"] = date_named_cols[0].get('column_name')
+        
+        # 2. Set default time_grain_sqla if not specified
+        if "time_grain_sqla" not in validated_params:
+            validated_params["time_grain_sqla"] = "P1D"  # Default daily
+        
+        # 3. Ensure adhoc_filters includes temporal filter for x_axis
+        if "x_axis" in validated_params:
+            x_axis = validated_params["x_axis"]
+            
+            # Check if temporal filter already exists
+            adhoc_filters = validated_params.get("adhoc_filters", [])
+            has_temporal_filter = any(
+                filter_item.get("operator") == "TEMPORAL_RANGE" and filter_item.get("subject") == x_axis
+                for filter_item in adhoc_filters
+            )
+            
+            if not has_temporal_filter:
+                temporal_filter = {
+                    "clause": "WHERE",
+                    "subject": x_axis,
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE"
+                }
+                adhoc_filters.append(temporal_filter)
+                validated_params["adhoc_filters"] = adhoc_filters
+        
+        logger.info(f"Big number temporal params validated: x_axis={validated_params.get('x_axis')}, time_grain={validated_params.get('time_grain_sqla')}")
         
         return validated_params
     
@@ -642,8 +734,8 @@ class ChartGenerator:
             viz_type = chart_config.get("viz_type", "table")
             
             # Handle metrics - berbeda untuk setiap chart type
-            if viz_type in ["pie", "funnel"]:
-                # PIE and FUNNEL charts: params menggunakan "metric" (singular), query_context menggunakan "metrics" (array)
+            if viz_type in ["pie", "funnel", "big_number", "big_number_total"]:
+                # PIE, FUNNEL, BIG_NUMBER, and BIG_NUMBER_TOTAL charts: params menggunakan "metric" (singular), query_context menggunakan "metrics" (array)
                 if "metric" in params:
                     metric = params["metric"]
                     if isinstance(metric, dict):
@@ -654,6 +746,10 @@ class ChartGenerator:
                     query["metrics"] = params["metrics"]
                 else:
                     query["metrics"] = ["count(*)"]
+                
+                # Handle temporal configuration for big_number
+                if viz_type == "big_number" and "x_axis" in params and "time_grain_sqla" in params:
+                    self._build_big_number_temporal_query_context(query, params, dataset_selected)
                     
             elif viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar", "echarts_area"]:
                 # Timeseries and area charts membutuhkan struktur query yang khusus
@@ -826,6 +922,82 @@ class ChartGenerator:
             query["post_processing"] = post_processing
         
         logger.info(f"Built timeseries query context: x_axis={params.get('x_axis')}, groupby={params.get('groupby')}, time_grain={params.get('time_grain_sqla')}")
+    
+    def _build_big_number_temporal_query_context(
+        self,
+        query: Dict[str, Any],
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> None:
+        """
+        Build query context khusus untuk big_number charts dengan temporal functionality.
+        
+        Args:
+            query: Query object untuk dimodifikasi
+            params: Params dari chart config
+            dataset_selected: Dataset yang digunakan
+        """
+        # 1. Add time axis dengan proper structure
+        if "x_axis" in params:
+            x_axis = params["x_axis"]
+            time_grain = params.get("time_grain_sqla", "P1D")
+            
+            # Cari column metadata untuk x_axis
+            x_axis_column_info = None
+            dataset_columns = dataset_selected.get('columns', [])
+            for col in dataset_columns:
+                if col.get('column_name') == x_axis:
+                    x_axis_column_info = col
+                    break
+            
+            if x_axis_column_info:
+                time_column = {
+                    "timeGrain": time_grain,
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": x_axis,
+                    "label": x_axis,
+                    "expressionType": "SQL"
+                }
+                query["columns"] = [time_column]
+            
+            # Set time_grain di extras
+            query["extras"]["time_grain_sqla"] = time_grain
+            
+            # Add temporal filter
+            temporal_filter = {
+                "col": x_axis,
+                "op": "TEMPORAL_RANGE",
+                "val": "No filter"
+            }
+            query["filters"].append(temporal_filter)
+        
+        # 2. Set post_processing untuk big_number temporal
+        x_axis = params.get("x_axis", "")
+        metrics = params.get("metric", {})
+        
+        if x_axis and metrics:
+            metric_label = metrics.get("label", "metric") if isinstance(metrics, dict) else str(metrics)
+            
+            post_processing = [
+                {
+                    "operation": "pivot",
+                    "options": {
+                        "index": [x_axis],
+                        "columns": [],
+                        "aggregates": {
+                            metric_label: {"operator": "mean"}
+                        },
+                        "drop_missing_columns": True
+                    }
+                },
+                {
+                    "operation": "flatten"
+                }
+            ]
+            
+            query["post_processing"] = post_processing
+        
+        logger.info(f"Built big_number temporal query context: x_axis={params.get('x_axis')}, time_grain={params.get('time_grain_sqla')}")
     
     async def _associate_chart_to_dashboard(
         self, 

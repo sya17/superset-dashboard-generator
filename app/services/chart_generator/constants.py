@@ -184,30 +184,40 @@ CHART_CONFIGS = {
     
     "big_number": {
         "viz_type": "big_number",
-        "required_params": ["metrics"],
+        "required_params": ["metric"],
         "default_params": {
-            "adhoc_filters": [],
+            "adhoc_filters": [{"clause": "WHERE", "subject": "active_date", "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
             "datasource": "",
-            "granularity_sqla": "",
-            "metrics": ["count(*)"],
-            "subheader": "",
-            "y_axis_format": "",
-            "force_categorical": False
+            "metric": "count(*)",
+            "x_axis": "",
+            "time_grain_sqla": "P1D",
+            "show_trend_line": True,
+            "start_y_axis_at_zero": True,
+            "color_picker": {"r": 0, "g": 122, "b": 135, "a": 1},
+            "header_font_size": 0.4,
+            "subheader_font_size": 0.15,
+            "y_axis_format": "SMART_NUMBER",
+            "time_format": "smart_date",
+            "rolling_type": "None",
+            "extra_form_data": {},
+            "dashboards": []
         },
-        "description": "Menampilkan satu angka besar sebagai KPI"
+        "description": "Menampilkan satu angka besar sebagai KPI dengan trend temporal"
     },
     
     "big_number_total": {
         "viz_type": "big_number_total",
-        "required_params": ["metrics"],
+        "required_params": ["metric"],
         "default_params": {
-            "adhoc_filters": [],
+            "adhoc_filters": [{"clause": "WHERE", "comparator": "No filter", "expressionType": "SIMPLE", "operator": "TEMPORAL_RANGE", "subject": "active_date"}],
             "datasource": "",
-            "granularity_sqla": "",
-            "metrics": ["count(*)"],
-            "subheader": "",
-            "y_axis_format": "",
-            "force_categorical": False
+            "metric": "count(*)",
+            "header_font_size": 0.4,
+            "subheader_font_size": 0.15,
+            "y_axis_format": "SMART_NUMBER",
+            "time_format": "smart_date",
+            "extra_form_data": {},
+            "dashboards": []
         },
         "description": "Menampilkan total agregat sebagai angka besar"
     },
@@ -264,7 +274,8 @@ Pilih berdasarkan kombinasi intent + data structure:
 - Distribusi kategorikal → pie (jika user minta "donut" set donut:true), bar
 - Trend temporal → timeseries_line, timeseries_bar, echarts_area
 - Perbandingan → bar, table
-- KPI/Metrics → big_number
+- KPI/Single Metrics → big_number (untuk satu angka dengan minimal aggregasi)
+- Total/Aggregate Metrics → big_number_total (untuk total keseluruhan dengan format yang lebih komprehensif)
 - Relasi/Flow → funnel, sankey
 
 🔍 LANGKAH 4 - SMART CONFIGURATION:
@@ -313,6 +324,9 @@ ADAPTIVE INTELLIGENCE:
    - params: sesuai chart type yang dipilih
    - metrics: gunakan format SIMPLE dengan column metadata lengkap sesuai Superset standard
    - untuk timeseries: set contributionMode ('column' atau 'row' SAJA, JANGAN 'series'), x_axis, time_grain_sqla, groupby
+   - BIG NUMBER SELECTION RULE:
+     * Use "big_number" when user explicitly asks for "big number" chart type
+     * Use "big_number_total" when user asks for "total", "grand total", "overall" aggregations or when the intent is comprehensive total display
 
 🎯 OUTPUT: Generate valid Superset chart JSON configuration.
 
@@ -360,7 +374,8 @@ CHART_TYPE_KEYWORDS = {
     "echarts_timeseries_bar": ["bar", "batang", "kolom", "histogram", "waktu"],
     "echarts_timeseries_line": ["line", "garis", "trend", "tren", "perkembangan"],
     "echarts_area": ["area", "area chart", "filled", "pertumbuhan"],
-    "big_number": ["big number", "angka besar", "kpi", "total", "jumlah"],
+    "big_number": ["big number", "angka besar", "kpi", "single metric", "satu angka"],
+    "big_number_total": ["big number total", "total aggregate", "grand total", "overall total"],
     "funnel": ["funnel", "corong", "konversi", "alur"],
     "echarts_gauge": ["gauge", "speedometer", "meter", "indikator"],
     "pivot_table_v2": ["pivot", "cross tab", "tabulasi silang"],
