@@ -54,20 +54,32 @@ CHART_CONFIGS = {
     
     "table": {
         "viz_type": "table", 
-        "required_params": ["groupby"],
+        "required_params": [],  # Can work with either groupby (aggregate) or columns (raw)
         "default_params": {
-            "adhoc_filters": [],
-            "all_columns": [],
             "datasource": "",
-            "granularity_sqla": "",
+            "query_mode": "aggregate",  # Default to aggregate mode
+            "adhoc_filters": [{"clause": "WHERE", "subject": "active_date", "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
+            "time_grain_sqla": "P1D",
+            "temporal_columns_lookup": {},
             "groupby": [],
             "metrics": [],
+            "all_columns": [],
+            "percent_metrics": [],
+            "timeseries_limit_metric": None,
             "order_by_cols": [],
+            "order_desc": True,
             "row_limit": 1000,
-            "show_totals": True,
-            "table_timestamp_format": "%Y-%m-%d %H:%M:%S"
+            "server_page_length": 10,
+            "table_timestamp_format": "smart_date",
+            "allow_render_html": True,
+            "show_cell_bars": True,
+            "color_pn": True,
+            "comparison_color_scheme": "Green",
+            "comparison_type": "values",
+            "extra_form_data": {},
+            "dashboards": []
         },
-        "description": "Tabel untuk menampilkan data dalam format tabular"
+        "description": "Tabel untuk menampilkan data dalam format tabular dengan mode aggregate atau raw"
     },
     
     "echarts_timeseries_bar": {

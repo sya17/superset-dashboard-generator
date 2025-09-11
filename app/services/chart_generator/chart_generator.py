@@ -250,23 +250,8 @@ class ChartGenerator:
             validated_params = self._validate_big_number_temporal_params(validated_params, dataset_selected)
             
         elif chart_type == "table":
-            # Table charts menggunakan "metrics" plural
-            if "metric" in validated_params and "metrics" not in validated_params:
-                # Convert singular ke plural array
-                metric = validated_params["metric"]
-                enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
-                validated_params["metrics"] = [enhanced_metric]
-                del validated_params["metric"]
-                logger.info(f"{chart_type}: converted singular metric to metrics array")
-            elif "metrics" in validated_params:
-                # Enhance existing metrics dengan column metadata
-                metrics = validated_params["metrics"]
-                if isinstance(metrics, list):
-                    enhanced_metrics = []
-                    for metric in metrics:
-                        enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
-                        enhanced_metrics.append(enhanced_metric)
-                    validated_params["metrics"] = enhanced_metrics
+            # Table charts validation based on query_mode
+            validated_params = self._validate_table_params(validated_params, dataset_selected)
         
         elif chart_type == "big_number":
             # Big number charts menggunakan "metric" singular (seperti pie/funnel/big_number_total)
@@ -537,6 +522,82 @@ class ChartGenerator:
         
         return validated_params
     
+    def _validate_table_params(
+        self,
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate dan sesuaikan params khusus untuk table charts (aggregate/raw mode).
+        
+        Args:
+            params: Raw params
+            dataset_selected: Dataset yang digunakan
+            
+        Returns:
+            Validated table params
+        """
+        validated_params = params.copy()
+        columns = dataset_selected.get('columns', [])
+        
+        # Determine query mode
+        query_mode = validated_params.get("query_mode", "aggregate")
+        
+        if query_mode == "aggregate":
+            # Aggregate mode: needs groupby + metrics
+            # Handle metrics conversion and enhancement
+            if "metric" in validated_params and "metrics" not in validated_params:
+                # Convert singular ke plural array
+                metric = validated_params["metric"]
+                enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                validated_params["metrics"] = [enhanced_metric]
+                del validated_params["metric"]
+                logger.info("Table aggregate: converted singular metric to metrics array")
+            elif "metrics" in validated_params:
+                # Enhance existing metrics dengan column metadata
+                metrics = validated_params["metrics"]
+                if isinstance(metrics, list):
+                    enhanced_metrics = []
+                    for metric in metrics:
+                        enhanced_metric = self._enhance_metric_with_column_metadata(metric, dataset_selected)
+                        enhanced_metrics.append(enhanced_metric)
+                    validated_params["metrics"] = enhanced_metrics
+            
+            # Ensure percent_metrics and timeseries_limit_metric are set if metrics exist
+            if "metrics" in validated_params and validated_params["metrics"]:
+                if "percent_metrics" not in validated_params:
+                    validated_params["percent_metrics"] = validated_params["metrics"].copy()
+                if "timeseries_limit_metric" not in validated_params:
+                    validated_params["timeseries_limit_metric"] = validated_params["metrics"][0]
+            
+            # Set temporal_columns_lookup if time columns exist
+            if "temporal_columns_lookup" not in validated_params:
+                temporal_lookup = {}
+                date_columns = [col for col in columns if 'date' in str(col.get('type', '')).lower() or col.get('is_dttm', False)]
+                if not date_columns:
+                    date_named_cols = [col for col in columns if any(word in col.get('column_name', '').lower() for word in ['date', 'time', 'created', 'updated'])]
+                    if date_named_cols:
+                        temporal_lookup[date_named_cols[0].get('column_name')] = True
+                else:
+                    temporal_lookup[date_columns[0].get('column_name')] = True
+                validated_params["temporal_columns_lookup"] = temporal_lookup
+            
+        else:  # raw mode
+            # Raw mode: just needs columns list
+            if "columns" not in validated_params or not validated_params["columns"]:
+                # Auto-select reasonable columns
+                column_names = [col.get('column_name') for col in columns[:7]]  # First 7 columns
+                validated_params["columns"] = column_names
+            
+            # Clear aggregate-specific fields
+            validated_params["groupby"] = []
+            validated_params["metrics"] = []
+            validated_params["all_columns"] = validated_params.get("columns", [])
+        
+        logger.info(f"Table params validated: query_mode={query_mode}, columns={len(validated_params.get('columns', []))}, metrics={len(validated_params.get('metrics', []))}")
+        
+        return validated_params
+    
     def _enhance_metric_with_column_metadata(
         self,
         metric: Any,
@@ -754,6 +815,10 @@ class ChartGenerator:
             elif viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar", "echarts_area"]:
                 # Timeseries and area charts membutuhkan struktur query yang khusus
                 self._build_timeseries_query_context(query, params, dataset_selected)
+                
+            elif viz_type == "table":
+                # Table charts membutuhkan handling berbeda untuk aggregate vs raw mode
+                self._build_table_query_context(query, params, dataset_selected)
                 
             else:
                 # Chart types lain menggunakan "metrics" (plural)
@@ -998,6 +1063,120 @@ class ChartGenerator:
             query["post_processing"] = post_processing
         
         logger.info(f"Built big_number temporal query context: x_axis={params.get('x_axis')}, time_grain={params.get('time_grain_sqla')}")
+    
+    def _build_table_query_context(
+        self,
+        query: Dict[str, Any],
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> None:
+        """
+        Build query context khusus untuk table charts (aggregate/raw mode).
+        
+        Args:
+            query: Query object untuk dimodifikasi
+            params: Params dari chart config
+            dataset_selected: Dataset yang digunakan
+        """
+        query_mode = params.get("query_mode", "aggregate")
+        
+        if query_mode == "aggregate":
+            # Aggregate mode: groupby + metrics with post_processing
+            
+            # Set columns untuk groupby
+            if "groupby" in params and params["groupby"]:
+                query["columns"] = params["groupby"]
+            
+            # Set metrics
+            if "metrics" in params and params["metrics"]:
+                query["metrics"] = params["metrics"]
+            
+            # Set orderby jika ada
+            if "metrics" in params and params["metrics"] and len(params["metrics"]) > 0:
+                primary_metric = params["metrics"][0]
+                query["orderby"] = [[primary_metric, False]]  # DESC order
+                
+                # Set series_limit_metric
+                if "timeseries_limit_metric" in params and params["timeseries_limit_metric"]:
+                    query["series_limit_metric"] = params["timeseries_limit_metric"]
+                else:
+                    query["series_limit_metric"] = primary_metric
+            
+            # Set post_processing untuk contribution calculation
+            if "percent_metrics" in params and params["percent_metrics"]:
+                metric_columns = []
+                rename_columns = []
+                for metric in params["percent_metrics"]:
+                    if isinstance(metric, dict) and "label" in metric:
+                        label = metric["label"]
+                        metric_columns.append(label)
+                        rename_columns.append(f"%{label}")
+                    elif isinstance(metric, str):
+                        metric_columns.append(metric)
+                        rename_columns.append(f"%{metric}")
+                
+                if metric_columns:
+                    post_processing = [{
+                        "operation": "contribution",
+                        "options": {
+                            "columns": metric_columns,
+                            "rename_columns": rename_columns
+                        }
+                    }]
+                    query["post_processing"] = post_processing
+            
+            # Set temporal handling jika ada
+            if "temporal_columns_lookup" in params and params["temporal_columns_lookup"]:
+                for col_name, enabled in params["temporal_columns_lookup"].items():
+                    if enabled:
+                        temporal_filter = {
+                            "col": col_name,
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter"
+                        }
+                        query["filters"].append(temporal_filter)
+                        
+                        # Set time_grain_sqla di extras
+                        if "time_grain_sqla" in params:
+                            query["extras"]["time_grain_sqla"] = params["time_grain_sqla"]
+                        
+                        break
+        
+        else:  # raw mode
+            # Raw mode: simple column selection
+            if "columns" in params and params["columns"]:
+                # For raw mode, set simple metrics
+                query["metrics"] = ["count(*)"]
+                query["columns"] = []
+                
+                # Set temporal column structure if date column exists
+                date_columns = [col for col in params["columns"] if any(word in col.lower() for word in ['date', 'time'])]
+                if date_columns:
+                    time_column = {
+                        "timeGrain": params.get("time_grain_sqla", "P1D"),
+                        "columnType": "BASE_AXIS",
+                        "sqlExpression": date_columns[0],
+                        "label": date_columns[0],
+                        "expressionType": "SQL"
+                    }
+                    query["columns"] = [time_column]
+                    
+                    # Set post_processing for raw mode
+                    post_processing = [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": [date_columns[0]],
+                                "columns": [],
+                                "aggregates": {"Total Saldo": {"operator": "mean"}},
+                                "drop_missing_columns": True
+                            }
+                        },
+                        {"operation": "flatten"}
+                    ]
+                    query["post_processing"] = post_processing
+        
+        logger.info(f"Built table query context: query_mode={query_mode}, columns={len(query.get('columns', []))}, metrics={len(query.get('metrics', []))}")
     
     async def _associate_chart_to_dashboard(
         self, 
