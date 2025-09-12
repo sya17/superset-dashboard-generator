@@ -158,11 +158,16 @@ class MetricBuilder:
         Returns:
             Column metadata yang lengkap
         """
+        # Fix: Ensure column_name is never empty - use id as fallback
+        column_name = column_info.get("column_name")
+        if not column_name:
+            column_name = column_info.get("id", "unknown_column")
+        
         return {
             "advanced_data_type": None,
             "certification_details": None,
             "certified_by": None,
-            "column_name": column_info.get("column_name", ""),
+            "column_name": column_name,
             "description": column_info.get("description"),
             "expression": column_info.get("expression"),
             "filterable": column_info.get("filterable", True),

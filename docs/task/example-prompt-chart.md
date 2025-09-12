@@ -239,7 +239,7 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
-- tipe chart: echarts_timeseries_area
+- tipe chart: area
 - dengan dataset: collateral
 - dengan time axis column: tanggal_dibuat
 - dengan time grain: month
