@@ -116,7 +116,7 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
-- tipe chart: echarts_timeseries_line
+- tipe chart: line
 - dengan dataset: loan order
 - dengan time axis column: order_date
 - dengan time grain: month
@@ -135,7 +135,7 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
-- tipe chart: echarts_timeseries_area
+- tipe chart: area
 - dengan dataset: loan order
 - dengan time axis column: order_date
 - dengan time grain: month
