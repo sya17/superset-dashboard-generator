@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.services import get_superset_client
 from app.services.chart_generator.chart_generator import ChartGenerator
+from app.services.chart_exporter.chart_exporter import ChartExporter
 from app.services.dataset_selector.dataset_selector import DatasetSelector
 from app.services.model_client import get_model_client
 from app.services.superset.client import SupersetClient
@@ -111,21 +112,52 @@ async def generate_resource(
         print("\n")
         print("="*50)
         chart_result = await chart_generator.generate_chart(user_prompt=request.prompt, dataset_selected=dataset_selected)
-        logger.info(f'chart_result: {chart_result}')
+        # logger.info(f'chart_result: {chart_result}')
 
         print("="*50)
         print("\n")
+        
+        
+        print("\n")
+        print("="*50)
+        # Export chart jika berhasil dibuat
+        export_result = None
+        if chart_result.get("success") and chart_result.get("chart", {}).get("id"):
+            try:
+                chart_id = chart_result["chart"]["id"]
+                logger.info(f"🔄 Starting chart export for chart ID: {chart_id}")
+                
+                chart_exporter = ChartExporter()
+                export_result = await chart_exporter.export_chart(chart_id)
+                
+                if export_result.get("success"):
+                    logger.info(f"📦 Chart export completed successfully")
+                else:
+                    logger.warning(f"⚠️ Chart export failed: {export_result.get('error')}")
+                    
+            except Exception as export_error:
+                logger.error(f"❌ Chart export error: {export_error}")
+                export_result = {"success": False, "error": str(export_error)}
+
+        print("="*50)
+        print("\n")        
         # 
 
         execution_time = time.time() - start_time
         logger.info(f"⏱️ Generation completed in {execution_time:.2f}s")
         logger.info(f"✅ Generation completed successfully")
 
+        # Build result dengan informasi chart dan export
+        result_data = {
+            "chart_generation": chart_result,
+            "chart_export": export_result
+        }
+
         return GenerationResponse(
             id=task_id,
             status="completed",
             message="Generation completed successfully",
-            result="",
+            result=result_data,
             execution_time=round(execution_time, 2)
         )
 

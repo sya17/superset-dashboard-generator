@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import (
     superset_router,
     debug_router,
-    generate_router
+    generate_router,
+    export_router
 )
 
 from app.utils.logging import init_app_logging
@@ -71,6 +72,12 @@ app.include_router(
     generate_router,
     prefix="/v1",
     tags=["AI Generation"]
+)
+
+app.include_router(
+    export_router,
+    prefix="/v1",
+    tags=["Chart Export"]
 )
 
 # Startup event

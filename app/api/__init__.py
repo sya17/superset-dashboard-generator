@@ -35,6 +35,7 @@ from .service import SupersetAPIService, get_superset_service
 from .routes_superset import router as superset_router
 from .routes_debug import router as debug_router
 from .routes_generate import router as generate_router
+from .routes_export import router as export_router
 
 __all__ = [
     # Constants
@@ -68,4 +69,5 @@ __all__ = [
     "superset_router",
     "debug_router",
     "generate_router",
+    "export_router",
 ]
