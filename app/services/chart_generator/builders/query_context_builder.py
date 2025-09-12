@@ -393,37 +393,62 @@ class QueryContextBuilder:
                         break
         
         else:  # raw mode
-            # Raw mode: simple column selection
+            # Raw mode: columns list, no aggregation, no post processing
             if "columns" in params and params["columns"]:
-                # For raw mode, set simple metrics
-                query["metrics"] = ["count(*)"]
-                query["columns"] = []
+                # For raw mode, set the actual columns list in query_context
+                query["columns"] = params["columns"]
+                query["metrics"] = []  # No metrics for raw mode
                 
-                # Set temporal column structure if date column exists
-                date_columns = [col for col in params["columns"] if any(word in col.lower() for word in ['date', 'time'])]
-                if date_columns:
-                    time_column = {
-                        "timeGrain": params.get("time_grain_sqla", "P1D"),
-                        "columnType": "BASE_AXIS",
-                        "sqlExpression": date_columns[0],
-                        "label": date_columns[0],
-                        "expressionType": "SQL"
-                    }
-                    query["columns"] = [time_column]
+                # Handle ordering for raw mode - use simple format
+                if "order_by_cols" in params and params["order_by_cols"]:
+                    orderby = []
                     
-                    # Set post_processing for raw mode
-                    post_processing = [
-                        {
-                            "operation": "pivot",
-                            "options": {
-                                "index": [date_columns[0]],
-                                "columns": [],
-                                "aggregates": {"Total Saldo": {"operator": "mean"}},
-                                "drop_missing_columns": True
-                            }
-                        },
-                        {"operation": "flatten"}
-                    ]
-                    query["post_processing"] = post_processing
+                    for order_col_str in params["order_by_cols"]:
+                        # Parse format: "[\"column_name\", boolean]"
+                        try:
+                            import json
+                            parsed = json.loads(order_col_str)
+                            if isinstance(parsed, list) and len(parsed) == 2:
+                                column_name, ascending = parsed
+                                orderby_item = [column_name, ascending]
+                                orderby.append(orderby_item)
+                        except:
+                            # Fallback for simple string format
+                            order_desc = params.get("order_desc", True) 
+                            orderby_item = [order_col_str, not order_desc]
+                            orderby.append(orderby_item)
+                    
+                    query["orderby"] = orderby
+                    logger.info(f"Set raw mode ordering: {orderby}")
+                
+                # Add temporal filter if date column exists in order_by_cols
+                if "order_by_cols" in params and params["order_by_cols"]:
+                    for order_col_str in params["order_by_cols"]:
+                        # Extract column name from format
+                        column_name = None
+                        try:
+                            import json
+                            parsed = json.loads(order_col_str)
+                            if isinstance(parsed, list) and len(parsed) >= 1:
+                                column_name = parsed[0]
+                        except:
+                            column_name = order_col_str
+                        
+                        if column_name:
+                            # Check if it's a date column
+                            dataset_columns = dataset_selected.get('columns', [])
+                            for col in dataset_columns:
+                                if (col.get('column_name') == column_name and 
+                                    (col.get('is_dttm', False) or 'date' in col.get('type', '').lower())):
+                                    temporal_filter = {
+                                        "col": column_name,
+                                        "op": "TEMPORAL_RANGE",
+                                        "val": "No filter"
+                                    }
+                                    query["filters"].append(temporal_filter)
+                                    break
+                
+                # No post_processing for raw mode
+                query["post_processing"] = []
         
         logger.info(f"Built table query context: query_mode={query_mode}, columns={len(query.get('columns', []))}, metrics={len(query.get('metrics', []))}")

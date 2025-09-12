@@ -485,11 +485,138 @@ class ChartValidator:
                 column_names = [col.get('column_name') for col in columns[:7]]  # First 7 columns
                 validated_params["columns"] = column_names
             
+            # Process ordering for raw mode
+            validated_params = self._process_table_ordering(validated_params, dataset_selected)
+            
             # Clear aggregate-specific fields
             validated_params["groupby"] = []
             validated_params["metrics"] = []
             validated_params["all_columns"] = validated_params.get("columns", [])
         
-        logger.info(f"Table params validated: query_mode={query_mode}, columns={len(validated_params.get('columns', []))}, metrics={len(validated_params.get('metrics', []))}")
+        logger.info(f"Table params validated: query_mode={query_mode}, columns={len(validated_params.get('columns', []))}, metrics={len(validated_params.get('metrics', []))}, order_by_cols={validated_params.get('order_by_cols', [])}")
         
         return validated_params
+    
+    def _process_table_ordering(
+        self,
+        params: Dict[str, Any],
+        dataset_selected: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Process ordering parameters for table raw mode."""
+        validated_params = params.copy()
+        columns = dataset_selected.get('columns', [])
+        column_names = [col.get('column_name') for col in columns]
+        
+        # Check if AI provided order_by_cols
+        order_by_cols = validated_params.get("order_by_cols", [])
+        
+        # If no order_by_cols provided, check for common ordering patterns
+        if not order_by_cols:
+            # Look for ordering hints in other parameters
+            ordering_hints = []
+            
+            # Check for ordering-related keywords in params
+            for key, value in validated_params.items():
+                if "order" in str(key).lower() and isinstance(value, (str, list)) and value:
+                    if isinstance(value, str):
+                        ordering_hints.append(value)
+                    elif isinstance(value, list):
+                        ordering_hints.extend([str(v) for v in value])
+            
+            # Map common ordering terms to actual column names
+            order_columns = self._map_ordering_terms_to_columns(ordering_hints, column_names)
+            if order_columns:
+                validated_params["order_by_cols"] = order_columns
+                logger.info(f"Mapped ordering hints {ordering_hints} to columns: {order_columns}")
+        else:
+            # Validate existing order_by_cols against actual column names
+            valid_order_cols = []
+            for order_col in order_by_cols:
+                mapped_col = self._map_single_ordering_term(order_col, column_names)
+                if mapped_col:
+                    valid_order_cols.append(mapped_col)
+            
+            if valid_order_cols:
+                # Format order_by_cols sesuai dengan format Superset: ["[\"column_name\", ascending_boolean]"]
+                order_desc = validated_params.get("order_desc", True)
+                formatted_order_cols = []
+                for col in valid_order_cols:
+                    # Format: "[\"column_name\", true]" untuk ASC, "[\"column_name\", false]" untuk DESC
+                    formatted_col = f"[\"{col}\", {str(not order_desc).lower()}]"
+                    formatted_order_cols.append(formatted_col)
+                
+                validated_params["order_by_cols"] = formatted_order_cols
+                logger.info(f"Validated order_by_cols: {formatted_order_cols}")
+            else:
+                # If no valid columns found, clear ordering
+                validated_params["order_by_cols"] = []
+                logger.warning(f"No valid columns found for ordering: {order_by_cols}")
+        
+        # Ensure order_desc is set (default to True for descending)
+        if "order_desc" not in validated_params:
+            validated_params["order_desc"] = True
+        
+        return validated_params
+    
+    def _map_ordering_terms_to_columns(
+        self,
+        ordering_terms: List[str],
+        column_names: List[str]
+    ) -> List[str]:
+        """Map ordering terms to actual column names."""
+        mapped_columns = []
+        
+        for term in ordering_terms:
+            mapped_col = self._map_single_ordering_term(term, column_names)
+            if mapped_col and mapped_col not in mapped_columns:
+                mapped_columns.append(mapped_col)
+        
+        return mapped_columns
+    
+    def _map_single_ordering_term(
+        self,
+        term: str,
+        column_names: List[str]
+    ) -> str:
+        """Map a single ordering term to actual column name."""
+        if not term or not isinstance(term, str):
+            return ""
+        
+        term_lower = term.lower().strip()
+        
+        # Direct match first
+        if term in column_names:
+            return term
+        
+        # Common date/time ordering mappings
+        date_mappings = {
+            "created date": ["created_date", "created_at", "date_created", "create_date"],
+            "updated date": ["updated_date", "updated_at", "date_updated", "update_date"],
+            "order date": ["order_date", "date_order", "order_time"],
+            "tanggal dibuat": ["created_date", "tanggal_dibuat", "created_at"],
+            "tanggal": ["date", "tanggal", "created_date", "order_date"],
+            "waktu": ["time", "waktu", "created_at", "updated_at"]
+        }
+        
+        # Check for date mapping matches
+        for mapping_key, possible_columns in date_mappings.items():
+            if mapping_key in term_lower:
+                for col_candidate in possible_columns:
+                    if col_candidate in column_names:
+                        return col_candidate
+        
+        # Fuzzy matching for column names containing the term
+        for col in column_names:
+            col_lower = col.lower()
+            # Check if term is part of column name or vice versa
+            if term_lower in col_lower or col_lower in term_lower:
+                # Additional check for common date/time words
+                if any(word in col_lower for word in ['date', 'time', 'created', 'updated', 'tanggal', 'waktu']):
+                    return col
+        
+        # Last resort: exact match ignoring case
+        for col in column_names:
+            if col.lower() == term_lower:
+                return col
+        
+        return ""

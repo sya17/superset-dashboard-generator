@@ -336,6 +336,8 @@ ADAPTIVE INTELLIGENCE:
    - params: sesuai chart type yang dipilih
    - metrics: gunakan format SIMPLE dengan column metadata lengkap sesuai Superset standard
    - untuk timeseries: set contributionMode ('column' atau 'row' SAJA, JANGAN 'series'), x_axis, time_grain_sqla, groupby
+   - untuk table raw mode: set query_mode="raw", columns=list_kolom, order_by_cols=list_kolom_ordering jika ada ordering request
+   - untuk table aggregate mode: set query_mode="aggregate", groupby, metrics
    - BIG NUMBER SELECTION RULE:
      * Use "big_number" when user explicitly asks for "big number" chart type
      * Use "big_number_total" when user asks for "total", "grand total", "overall" aggregations or when the intent is comprehensive total display
