@@ -10,12 +10,11 @@ Buatkan sebuah Chart dengan description seperti berikut:
 
 Buatkan sebuah Chart dengan description seperti berikut:
 
-- tipe chart: Pie Chart
+- tipe chart: Donut Chart
 - dengan dataset: saving account
 - dengan dimension column: product_name
 - dengan metrics: SUM dari column saldo
 - dengan row limit: 1000
-- format: donut
 - nama chart: Komposisi Saldo per Produk
 
 Buatkan sebuah Chart dengan description seperti berikut:
