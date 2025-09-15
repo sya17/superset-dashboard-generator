@@ -24,9 +24,11 @@ Lakukan prosess pemecahan untuk user prompt baru, yaitu untuk mendapatkan chart 
 ->
 Lakuakn prosess exsiting chart generation tapi dengan improvement dengan menjadi beberapa kali prosess chart generation berdasarkan user prompt pattern baru dan menghasilkan result list chart hasil generate.
 ->
-mekanisme preparation layout dashboard yang availabel di superset.
+mekanisme preparation layout dashboard yang cocok untuk list dashboard yang berhasil di buat dan availabel di superset.
 ->
 build instruction untuk merancang layout dashboard dengan membuat sebuah yaml baru di
 /cache/chart_export/{chart_id}\_extracted/dashboards/{id_dashboard}\_dashboard.yaml
 ->
-setelah berhasil membuat yaml layout dashboard maka lakukan prosess import dashboard ke superset
+setelah berhasil membuat yaml layout dashboard maka lakukan prosess compress ke zip di /cache/dashboard_import/{dashboard_id}\_nama_dashboard.zip
+->
+setelah berhasil membuat zip import dashboard maka lakukan prosess import dashboard ke superset
