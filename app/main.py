@@ -31,6 +31,10 @@ app.add_middleware(
         "http://127.0.0.1:4200",   # Alternative localhost
         "http://localhost:3000",   # Alternative frontend port
         "http://127.0.0.1:3000",   # Alternative localhost
+        "http://localhost:9000",   # Alternative frontend port
+        "http://127.0.0.1:9000",   # Alternative localhost
+        "http://localhost:8088",   # Alternative frontend port
+        "http://127.0.0.1:8088",   # Alternative localhost
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
